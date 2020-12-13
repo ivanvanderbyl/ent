@@ -7,6 +7,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -22,6 +23,8 @@ type User struct {
 	ID int `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// Foods holds the value of the "foods" field.
+	Foods []string `json:"foods,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the UserQuery when eager-loading is set.
 	Edges       UserEdges `json:"edges"`
@@ -67,6 +70,7 @@ func (*User) scanValues() []interface{} {
 	return []interface{}{
 		&sql.NullInt64{},  // id
 		&sql.NullString{}, // name
+		&[]byte{},         // foods
 	}
 }
 
@@ -94,7 +98,15 @@ func (u *User) assignValues(values ...interface{}) error {
 	} else if value.Valid {
 		u.Name = value.String
 	}
-	values = values[1:]
+
+	if value, ok := values[1].(*[]byte); !ok {
+		return fmt.Errorf("unexpected type %T for field foods", values[1])
+	} else if value != nil && len(*value) > 0 {
+		if err := json.Unmarshal(*value, &u.Foods); err != nil {
+			return fmt.Errorf("unmarshal field foods: %v", err)
+		}
+	}
+	values = values[2:]
 	if len(values) == len(user.ForeignKeys) {
 		if value, ok := values[0].(*sql.NullInt64); !ok {
 			return fmt.Errorf("unexpected type %T for edge-field user_tenant", value)
@@ -141,6 +153,8 @@ func (u *User) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v", u.ID))
 	builder.WriteString(", name=")
 	builder.WriteString(u.Name)
+	builder.WriteString(", foods=")
+	builder.WriteString(fmt.Sprintf("%v", u.Foods))
 	builder.WriteByte(')')
 	return builder.String()
 }
