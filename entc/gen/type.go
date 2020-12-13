@@ -883,6 +883,22 @@ func (f Field) NullTypeField(rec string) string {
 	return expr
 }
 
+// EntQLInterfaceName returns the package interface for the corresponding EntQL interface
+func (f Field) EntQLInterfaceName() string {
+	switch f.Type.Type {
+	case field.TypeJSON:
+		return "entql.JsonP"
+	case field.TypeTime:
+		return "entql.TimeP"
+	case field.TypeBytes:
+		return "entql.BytesP"
+	case field.TypeUUID:
+		return "entql.ValueP"
+	default:
+		return fmt.Sprintf("entql.%sP", f.Type.String())
+	}
+}
+
 // Column returns the table column. It sets it as a primary key (auto_increment) in case of ID field.
 func (f Field) Column() *schema.Column {
 	c := &schema.Column{
